@@ -25,16 +25,19 @@ var options = {
 	currentMonth: 1,
 
 	// Earliest year that will be parsed (inclusive)
-	earliestYear: 2011,
+	earliestYear: 2016,
 
 	// Earliest month that will be parsed (inclusive)
-	earliestMonth: 4,
+	earliestMonth: 10,
 
 	// Wait time between monthly database query (treat the server gently ;)
 	parseWaitTime: 1,
 
+	// Max items to download
+	maxDownloadItems: 1000,  // sort of unlimited...
+
 	// Wait time before launching the next download request (treat the server gently ;)
-	downloadWaitTime: 60,
+	downloadWaitTime: 1,
 
 	// Absolute or relative target download path
 	downloadPath: "./downloads",
@@ -179,11 +182,116 @@ function timeoutParse() {
 
 
 
+
+
+
 function startDownloads() {
-	console.log(podcasts);
+	timeoutDownload();
+}
+
+// Pause before starting new download, we don't want people
+// at RTVE to pull the plug... ;) 
+function timeoutDownload() {
+	console.log("Waiting " + options.downloadWaitTime + " seconds...");
+	setTimeout(downloadNextPod, options.downloadWaitTime * 1000);
 }
 
 
+// A function that sequentually downloads the next podcast in queue
+// Based on http://stackoverflow.com/a/22907134/1934487
+function downloadNextPod() {
+
+	// Done?
+	if (downloadId >= podcasts.length || downloadCount >= options.maxDownloadItems) {
+		console.log("FINISHED DOWNLOADING " + downloadCount + " FILES, exiting...");
+		return;
+	}
+
+	// File mngmt
+	var podObj = podcasts[downloadId++];
+	var fileName = sanitize(podObj.dateStr + " - " + podObj.title + (podObj.mp3url ? ".mp3" : ".mp4"));
+	var downloadDir = options.downloadPath + "/" + podObj.dateArr[0];
+	var dest = downloadDir + "/" + fileName;
+
+	// Check if download path exists
+	if (!fs.existsSync(downloadDir)) {
+		console.log("Creating directory " + downloadDir);
+		fs.mkdirSync(downloadDir);
+	}
+
+	// Timers
+	var startTime = Date.now();
+	console.log(" ");
+	console.log((new Date()).toString());
+
+	var downloadurl = podObj.mp3url ? podObj.mp3url :
+		options.downloadMp4 ? podObj.mp4url : null;
+
+	// Download if valid link
+	if (downloadurl != null) {
+		console.log("Starting download #" + downloadCount + ": " + fileName);
+
+		var fileWriter = fs.createWriteStream(dest);
+		
+		// The main request
+		var req = http.get(downloadurl, function(res) {
+
+			//http://stackoverflow.com/a/20203043/1934487
+			var resLen = parseInt(res.headers['content-length'], 10);
+			var cur = 0;
+			var total = (resLen / 1048576).toFixed(3); //1048576 - bytes in  1Megabyte
+			podObj.fileSize = total;
+			var perc = 0;
+
+			res.pipe(fileWriter);
+			
+			// Download progress on the console
+			res.on('data', function(chunk) {
+				cur += chunk.length;
+				perc = (100 * cur / 1048576 / total).toFixed(2);
+				process.stdout.write("Downloaded " + perc + "% of " + total + " MB\r");
+			})
+
+			// Close the file, add id3 tags and timeout next download
+			fileWriter.on('finish', function() {
+				var duration = millisToMins(Date.now() - startTime);
+				console.log("Download complete: " + podObj.fileSize + " MB in " + duration + " mins");
+				downloadCount++;
+				fileWriter.close(timeoutDownload);
+
+				// node-id3 is having a hard time writing tags to big files?!?! 
+				// Looks like a version problem: v.6.9.2 doesn't work, downgrading to 5.12.0 makes tis work... 
+
+				// Write id3 tags
+				if (writeID3Tags && podObj.mp3url) {
+					var tags = {
+						title: podObj.dateStr + " - " + podObj.title,
+						artist: "Onda Cero",
+						year: podObj.dateArr[0].toString()  // node-id3 doesn't support non-string values as of v0.0.7
+						// comment: podObj.detail  			// not supported by node-id3
+					};
+
+					var success = nodeID3.write(tags, dest);
+					if (success) console.log("Successfuly written tags");
+				}
+			});
+		
+		}).on('error', function(err) {
+			fs.unlink(dest);
+
+			console.log("ERROR DOWNLOADING " + fileName);
+			console.log(err.message);
+
+			timeoutDownload();  // continue with next
+		});
+
+
+	} else {
+		console.log("Skipping " + fileName + " --> no valid download file");
+		downloadNextPod();  // continue with next
+
+	}
+}
 
 
 
@@ -214,7 +322,8 @@ function Podcast(obj) {
 		this.dateArr[1] = date.getMonth() + 1;  // months start at 0
 		this.dateArr[2] = date.getDate();
 		
-		this.dateStr = this.dateArr.join("-");
+		// this.dateStr = this.dateArr.join("-");
+		this.dateStr = dateArrToString(this.dateArr, "-");
 
 	} else {
 		// Otherwise, get it from the title if any
@@ -235,8 +344,8 @@ function Podcast(obj) {
 			this.dateArr[1] = parseInt(arr[1]);
 			this.dateArr[2] = parseInt(arr[0]);
 
-			this.dateStr = this.dateArr.join("-");
-
+			// this.dateStr = this.dateArr.join("-");
+			this.dateStr = dateArrToString(this.dateArr, "-");
 		}
 
 	}
@@ -332,6 +441,15 @@ function millisToMins(millis) {
 }
 
 
+function dateArrToString(arr, joinChar) {
+	var y = arr[0].toString();
+	var m = arr[1].toString();
+	while (m.length < 2) m = "0" + m;
+	var d = arr[2].toString();
+	while (d.length < 2) d = "0" + d;
+
+	return y + joinChar + m + joinChar + d;
+}
 
 
 
