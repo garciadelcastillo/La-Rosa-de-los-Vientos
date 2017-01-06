@@ -1,0 +1,23 @@
+{
+  "name": "la-rosa-de-los-vientos",
+  "version": "1.0.0",
+  "description": "Batch download application of the \"La Rosa de los Vientos\" podcast",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garciadelcastillo/La-Rosa-de-los-Vientos.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/garciadelcastillo/La-Rosa-de-los-Vientos/issues"
+  },
+  "homepage": "https://github.com/garciadelcastillo/La-Rosa-de-los-Vientos#readme",
+  "dependencies": {
+    "node-id3": "0.0.7",
+    "sanitize-filename": "^1.6.1"
+  }
+}
