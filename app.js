@@ -19,10 +19,10 @@ var baseURL = "http://www.ondacero.es/programas/la-rosa-de-los-vientos/";
 var options = {
 	
 	// Last publishing year, will start parsing back from here
-	currentYear: 2014,
+	currentYear: 2017,
 
 	// Last publishing month in the above year, will start parsing back from here 
-	currentMonth: 5,
+	currentMonth: 1,
 
 	// Earliest year that will be parsed (inclusive)
 	earliestYear: 2011,
@@ -126,8 +126,8 @@ function parseNextMonth() {
 
 			if (tickMonth()) 
 				timeoutParse();
-			// else
-				// start downloading
+			else
+				startDownloads();
 		});
 
 	}).on('error', function(err) {
@@ -138,8 +138,8 @@ function parseNextMonth() {
 		if (failed < 3) {
 			if (tickMonth()) 
 				timeoutParse();
-			// else 
-				// start downloading
+			else 
+				startDownloads();
 		} else {
 
 			console.log(podcasts);
@@ -147,7 +147,9 @@ function parseNextMonth() {
 			console.log(" ");
 			console.log("Done parsing " + parsed + " podcasts");
 			console.log("Starting downloads");
+
 			// start downloading	
+			startDownloads();
 		}
 	});
 }
@@ -176,34 +178,13 @@ function timeoutParse() {
 }
 
 
-function requestURL(url) {
-	var body;
 
-	var request = http.get(url, function(res) {
-
-		res.on('data', function(chunk) {
-			body += chunk;
-		});
-
-		res.on('end', function() {
-			console.log("Done fetching " + url);
-
-			// The response object comes with a leading "undefined" for some reason...
-			// get rid of this...
-			body = body.slice(9);  // quick and dirty
-			var json = JSON.parse(body);
-
-			for (var i = 0; i < json.length; i++) {
-				podcasts.push(new Podcast(json[i]));
-			}
-
-		})
-
-	}).on('error', function(err) {
-		console.log("Error requesting " + url);
-		console.log(err);
-	});	
+function startDownloads() {
+	console.log(podcasts);
 }
+
+
+
 
 
 
