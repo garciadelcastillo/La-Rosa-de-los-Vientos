@@ -19,13 +19,19 @@ var baseURL = "http://www.ondacero.es/programas/la-rosa-de-los-vientos/";
 var options = {
 	
 	// Last publishing year, will start parsing back from here
-	currentYear: 2016,
+	currentYear: 2014,
 
 	// Last publishing month in the above year, will start parsing back from here 
-	currentMonth: 10,
+	currentMonth: 5,
+
+	// Earliest year that will be parsed (inclusive)
+	earliestYear: 2011,
+
+	// Earliest month that will be parsed (inclusive)
+	earliestMonth: 4,
 
 	// Wait time between monthly database query (treat the server gently ;)
-	parseWaitTime: 5,
+	parseWaitTime: 1,
 
 	// Wait time before launching the next download request (treat the server gently ;)
 	downloadWaitTime: 60,
@@ -35,7 +41,10 @@ var options = {
 	// downloadPath: "C:/downloads"
 
 	// Override default id3 tags on mp3 with custom podcast data?
-	writeID3Tags: true
+	writeID3Tags: true,
+
+	// Some older podcasts are not available in mp3 format, download mp4?
+	downloadMp4: true
 
 };
 
@@ -60,8 +69,7 @@ var downloadCount = 0;
 
 // This base URL contains monthly JSON files with podcast data in the form of
 // "http://www.ondacero.es/json/audio/8502/complete_programs_2017_01.json"
-var dbURL = "http://www.ondacero.es/json/audio/8502/";
-
+var dbUrl = "http://www.ondacero.es/json/audio/8502/";
 
 // Check if download path exists
 if (!fs.existsSync(options.downloadPath)) {
@@ -79,20 +87,96 @@ console.log = function(d) { //
 
 
 
+
 // Let's go!
 console.log("STARTING DATABASE PARSE on " + new Date());
-parseDB(dbURL, options.currentYear, options.currentMonth);
+
+var y = options.currentYear,
+	m = options.currentMonth,
+	failed = 0,
+	parsed = 0;
+
+parseNextMonth();
 
 
-function parseDB(baseURL, lastYear, lastMonth) {
+function parseNextMonth() {
+	
+	var url = dbUrl + "complete_programs_" + y + "_" + pad(m, 2) + ".json";
+	console.log("Parsing " + url);
 
-	var y = lastYear,
-		m = lastMonth;
+	var body;
+	var request = http.get(url, function(res) {
 
-	var url = baseURL + "complete_programs_" + y + "_" + pad(m, 2) + ".json";
+		res.on('data', function(chunk) {
+			body += chunk;
+		});
 
-	console.log(url);
+		res.on('end', function() {
+			console.log("Done fetching " + url);
 
+			// The response object comes with a leading "undefined" for some reason...
+			// get rid of this...
+			body = body.slice(9);  // quick and dirty
+			var json = JSON.parse(body);
+
+			for (var i = 0; i < json.length; i++) {
+				podcasts.push(new Podcast(json[i]));
+				parsed++;
+			}
+
+			if (tickMonth()) 
+				timeoutParse();
+			// else
+				// start downloading
+		});
+
+	}).on('error', function(err) {
+		console.log("Error requesting " + url);
+		console.log(err);
+
+		failed++;
+		if (failed < 3) {
+			if (tickMonth()) 
+				timeoutParse();
+			// else 
+				// start downloading
+		} else {
+
+			console.log(podcasts);
+
+			console.log(" ");
+			console.log("Done parsing " + parsed + " podcasts");
+			console.log("Starting downloads");
+			// start downloading	
+		}
+	});
+}
+
+function tickMonth() {
+	m--;
+	if (m == 0) {
+		m = 12;
+		y--;
+	}
+
+	// Return true if still within boundaries
+	return !(y <= options.earliestYear && m < options.earliestMonth);
+
+	// if (y <= options.earliestYear && m < options.earliestMonth) {
+	// 	return false;
+	// } else {
+	// 	return true;
+	// }
+
+}
+
+function timeoutParse() {
+	console.log("Waiting " + options.parseWaitTime + " seconds...");
+	setTimeout(parseNextMonth, options.parseWaitTime + 1000);
+}
+
+
+function requestURL(url) {
 	var body;
 
 	var request = http.get(url, function(res) {
@@ -104,34 +188,22 @@ function parseDB(baseURL, lastYear, lastMonth) {
 		res.on('end', function() {
 			console.log("Done fetching " + url);
 
-			// console.log("");
-			// console.log("RAW BODY");
-			// console.log(body);
-
 			// The response object comes with a leading "undefined" for some reason...
 			// get rid of this...
 			body = body.slice(9);  // quick and dirty
-
-			// console.log("");
-			// console.log("JSON OBJ:");
 			var json = JSON.parse(body);
-			// console.log(json);
 
 			for (var i = 0; i < json.length; i++) {
 				podcasts.push(new Podcast(json[i]));
 			}
-
-			console.log(podcasts);
 
 		})
 
 	}).on('error', function(err) {
 		console.log("Error requesting " + url);
 		console.log(err);
-	});
+	});	
 }
-
-
 
 
 
@@ -149,17 +221,89 @@ function parseDB(baseURL, lastYear, lastMonth) {
 function Podcast(obj) {
 
 	this.id = obj["id"];
-	this.title = obj["title"].match(/.+?(?=\s\d)/g)[0];
+
+	// PARSE DATE
+	// Some objects have a date property with UNIX timestamp, 
+	// others don't and have the date on the title
+	if (obj["date"]) {
+		var date = new Date(obj["date"]);
+		
+		this.dateArr = [];
+		this.dateArr[0] = date.getFullYear();
+		this.dateArr[1] = date.getMonth() + 1;  // months start at 0
+		this.dateArr[2] = date.getDate();
+		
+		this.dateStr = this.dateArr.join("-");
+
+	} else {
+		// Otherwise, get it from the title if any
+		var m = str.match(/\d+?\/\s*\d+?\/\s*\d+/g);  // https://regex101.com/r/0NY5N8/3
+
+		// If bad formatting, use placeholder for 
+		if (m == null) {
+			console.log("  --> WEIRD DATE " + obj["id"] + " " + obj["title"]);
+			this.dateStr = "yyyy-mm-dd";
+			this.dateArr = [1990, 1, 1];
+
+		} else {
+			// On some podcasts the date reads "dd/ mm/ yyyy", fix it
+			var arr = m[0].split(" ").join("/").split("/");  // quick ad dirty
+
+			this.dateArr = [];
+			this.dateArr[0] = parseInt(arr[2]);
+			this.dateArr[1] = parseInt(arr[1]);
+			this.dateArr[2] = parseInt(arr[0]);
+
+			this.dateStr = this.dateArr.join("-");
+
+		}
+
+	}
+
+	// PARSE TITLE
+	// var m = obj["title"].match(/.+?(?=\s\d)/g);
+	// if (m == null) {
+	// 	console.log("  --> WEIRD TITLE " + obj["id"] + " " + obj["title"]);
+	// 	this.title = "FOO";
+
+ // 	} else {
+ // 		this.title = m[0];
+
+ // 	}
+
+ 	// Title is inconsistent, and pretty much useless. 
+ 	// Replaced by static title
+ 	this.title = "La Rosa de los Vientos";
+
 	this.detail =  obj["description"];
 
-	this.duration = parseFloat(obj["duration"]);  // in secs
-	this.durationStr = secsToTimeString(this.duration);
+	if (obj["duration"]) {
+		this.duration = parseFloat(obj["duration"]);  // in secs
+		this.durationStr = secsToTimeString(this.duration);
+	
+	} else {
+		// console.log("  --> NO DURATION " + obj["id"] + " " + obj["title"]);
+		this.duration = 0;
+		this.durationStr = "0:00:00";
 
-	var dateObj = titleToDate(obj["title"]);
-	this.dateStr = dateObj.dateStr;
-	this.dateArr = dateObj.dateArr;
+	}
 
-	this.mp3url = obj["source"]["mp3"];
+	// Older podcasts are only available in mp4 format...
+	if (obj["source"]["mp3"]) {
+		this.mp3url = obj["source"]["mp3"];
+
+	} else {
+		if (obj["source"]["mp4"]) {
+			this.mp4url = obj["source"]["mp4"];
+
+		} else {
+			console.log("  --> No mp3 || mp4 link " + obj["id"] + " " + obj["title"]);
+
+		}
+	}
+
+
+
 
 	this.toString = function() {
 		return "" 
@@ -206,21 +350,7 @@ function millisToMins(millis) {
 	return m + ":" + s;
 }
 
-function titleToDate(str) {
-	var obj = {};
-	var m = str.match(/\d+?\/\d+?\/\d+?$/g);  // https://regex101.com/r/0NY5N8/1
-	if (m == null) return undefined;
 
-	obj.dateStr = m[0];
-
-	var arr = obj.dateStr.split("/");
-	obj.dateArr = [];
-	obj.dateArr[0] = arr[2];
-	obj.dateArr[1] = arr[1];
-	obj.dateArr[2] = arr[0];
-
-	return obj;
-}
 
 
 
