@@ -263,7 +263,7 @@ function downloadNextPod() {
 				// Looks like a version problem: v.6.9.2 doesn't work, downgrading to 5.12.0 makes tis work... 
 
 				// Write id3 tags
-				if (writeID3Tags && podObj.mp3url) {
+				if (options.writeID3Tags && podObj.mp3url) {
 					var tags = {
 						title: podObj.dateStr + " - " + podObj.title,
 						artist: "Onda Cero",
