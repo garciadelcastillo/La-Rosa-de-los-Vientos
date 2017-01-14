@@ -165,12 +165,7 @@ function exportPodcasts() {
 // A class representing a podcast element constructed via the json object parsed from the DB
 function Podcast(obj) {
 
-	this.source = {
-		id: obj["id"],
-		title: obj["title"],
-		timestamp: obj["date"],
-		mainUrl: obj["shortUrl"]
-	}
+	this.source = obj;
 
 	// DATE PARSING
 	// Will try to parse the title first, otherwise parse the timestamp, otherwise no timestamp
@@ -202,6 +197,8 @@ function Podcast(obj) {
  	this.author = "Onda Cero"
 
 	this.detail = obj["description"];
+
+	this.url = obj["url"];
 
 	if (obj["duration"]) {
 		this.duration = Math.round(parseFloat(obj["duration"]));  // in secs
