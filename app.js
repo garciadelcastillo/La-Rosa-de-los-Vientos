@@ -165,14 +165,7 @@ function tickMonth() {
 	}
 
 	// Return true if still within boundaries
-	return !(y <= options.earliestYear && m < options.earliestMonth);
-
-	// if (y <= options.earliestYear && m < options.earliestMonth) {
-	// 	return false;
-	// } else {
-	// 	return true;
-	// }
-
+	return !(y < options.earliestYear || (y == options.earliestYear && m < options.earliestMonth));
 }
 
 function timeoutParse() {
