@@ -10,7 +10,7 @@ El autor de esta aplicación no se hace responsable del uso que se pueda dar a e
 
 ## Instrucciones
 * Instala [Node.js](https://nodejs.org/en/) en Win/Mac/Linux.
-* Clona este repositorio. Si no eres usuario habitual de .git, simplemente pincha en el botón verde arriba a la derecha de esta página y descárgate la aplicación en un .ZIP. A día de hoy (22/12/2016) el archivo contiene ~445 programas con un tamaño aproximado de 40 Gb. Asegurate de descomprimir el archivo ZIP en un unidad con suficiente espacio (HDD portátiles y USB sticks valen también).
+* Clona este repositorio. Si no eres usuario habitual de .git, simplemente pincha en el botón verde arriba a la derecha de esta página y descárgate la aplicación en un .ZIP. El archivo contiene unos 450 programas con un tamaño aproximado de 40 Gb. Asegurate de descomprimir el archivo ZIP en un unidad con suficiente espacio (HDD portátiles y USB sticks valen también).
 * Abre un terminal (o un Command Prompt) en la carpeta descomprimida (por ejemplo `La-Rosa-de-los-Vientos-master`). 
 * Instala las dependencias con `npm` (el `$` no hay que teclearlo...):
 ```
