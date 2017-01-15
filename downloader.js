@@ -17,10 +17,10 @@ var db = "podcasts.json";
 var options = {
 	
 	// Nothing before this date will be downloaded ("yyyy-mm-dd")
-	startDate: "2017-12-31",
+	startDate: "2011-01-01",
 
 	// Nothing after this date will be downloade ("yyyy-mm-dd")
-	endDate: "2011-01-01",
+	endDate: "2017-12-31",
 
 	// Max items to download
 	maxDownloadItems: 1000, 
@@ -152,6 +152,14 @@ function downloadNextPod() {
 	if (podObj.timestamp < options.startTimestamp || podObj.timestamp > options.endTimestamp) {
 		console.log("Skipping podcast '" + podObj.title + "':");
 		console.log("  --> Date is out of range: " + new Date(podObj.timestamp));
+		downloadNextPod();
+		return;
+	}
+
+	// Skip if not valid format
+	if (!options.filetypes[podObj.file.type]) {
+		console.log("Skipping podcast '" + podObj.title + "':");
+		console.log("  --> Invalid file format: " + podObj.file.type);
 		downloadNextPod();
 		return;
 	}
