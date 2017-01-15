@@ -8,13 +8,11 @@
 // A batch downloader of podcast files
 
 
-
-
-// File containing the JSON representation of the podcast objects
-var db = "podcasts.json";
-
 // Main configuration object, use these properties to customize download options
 var options = {
+
+	// File containing the JSON representation of the podcast objects
+	db: "./parsing/la-rosa-de-los-vientos.json",
 	
 	// Nothing before this date will be downloaded ("yyyy-mm-dd")
 	startDate: "2011-01-01",
@@ -26,7 +24,7 @@ var options = {
 	maxDownloadItems: 1000, 
 
 	// Wait time in seconds before launching the next download request (treat the server gently ;)
-	downloadWaitTime: 5,
+	downloadWaitTime: 60,
 
 	// Absolute or relative target download path
 	downloadPath: "./downloads",
@@ -44,7 +42,7 @@ var options = {
 
 	// By default, the app downloads the podcasts from the most recent to the oldest.
 	// Set randomizeDownloads to true to download them in random order (no repetitions guaranteed)
-	randomizeDownloads: true
+	randomizeDownloads: false
 };
 
 
@@ -101,12 +99,12 @@ console.log = function(d) { //
 
 // Load the podcasts from the file
 // Do not use _require_, do sync readfile instead: http://stackoverflow.com/a/25710749/1934487
-console.log("Loading podcasts from " + db);
+console.log("Loading podcasts from " + options.db);
 var json;
 try {
-	json = fs.readFileSync(__dirname + '/' + db, 'utf8');
+	json = fs.readFileSync(options.db, 'utf8');
 } catch (err) {
-	console.log("ERROR loading " + db);
+	console.log("ERROR loading " + options.db);
 	console.log(err);
 	process.exit(1);	
 }

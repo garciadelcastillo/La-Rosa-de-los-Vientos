@@ -9,11 +9,14 @@
 // 	http://www.ondacero.es/programas/la-rosa-de-los-vientos/
 
 
-// This is just for reference ;)
-var baseURL = "http://www.ondacero.es/programas/la-rosa-de-los-vientos/";
-
 // Main configuration object, use these properties to customize parsing options
 var options = {
+
+	// This is just for reference ;)
+	baseURL: "http://www.ondacero.es/programas/la-rosa-de-los-vientos/",
+
+	// Name used for filenames and stuff
+	projectName: 'la-rosa-de-los-vientos',
 
 	// Last publishing year, will start parsing back from here
 	currentYear: 2017,
@@ -26,6 +29,9 @@ var options = {
 
 	// Earliest month that will be parsed (inclusive)
 	earliestMonth: 1,
+
+	// The folder that will contain the output json file
+	parsingPath: "./parsing",
 	
 	// Wait time between monthly database query (treat the server gently ;)
 	parseWaitTime: 10
@@ -50,8 +56,14 @@ var podcasts = [];
 // "http://www.ondacero.es/json/audio/8502/complete_programs_2017_01.json"
 var dbUrl = "http://www.ondacero.es/json/audio/8502/";
 
+// Check if download path exists
+if (!fs.existsSync(options.parsingPath)) {
+	console.log("Creating directory " + options.parsingPath);
+	fs.mkdirSync(options.parsingPath);
+}
+
 // Initialize a console + file logger: http://stackoverflow.com/a/21061306/1934487
-var log_file = fs.createWriteStream(__dirname + '/parse.log', {flags : 'w'});  // choose 'a' to add to the existing file instead
+var log_file = fs.createWriteStream(options.parsingPath + '/' + options.projectName + '.log', {flags : 'w'});  // choose 'a' to add to the existing file instead
 var log_stdout = process.stdout;
 console.log = function(d) { //
   log_file.write(util.format(d) + '\n');
@@ -143,7 +155,7 @@ function timeoutParse() {
 function exportPodcasts() {
 	// JSON,stringify accepts 'prettyfication' via space count on its third argument
 	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toJSON
-	fs.writeFile("podcasts.json", JSON.stringify(podcasts, null, 2), "utf8");  
+	fs.writeFile(options.parsingPath + '/' + options.projectName + '.json', JSON.stringify(podcasts, null, 2), "utf8");  
 }
 
 
