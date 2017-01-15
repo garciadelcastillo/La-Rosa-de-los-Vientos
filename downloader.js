@@ -40,7 +40,11 @@ var options = {
 	},
 	
 	// Override default id3 tags on mp3 with custom podcast data?
-	writeID3Tags: true
+	writeID3Tags: true,
+
+	// By default, the app downloads the podcasts from the most recent to the oldest.
+	// Set randomizeDownloads to true to download them in random order (no repetitions guaranteed)
+	randomizeDownloads: true
 };
 
 
@@ -111,6 +115,17 @@ try {
 console.log("Parsing podcasts...");
 var podcasts = JSON.parse(json);
 
+// Choose between sequential or random download order:
+var downloadOrder = [];  // stores the sequential indices of the downloads
+for (var i = 0; i < podcasts.length; i++) {
+	downloadOrder.push(i);
+}
+
+if (options.randomizeDownloads) {
+	downloadOrder = shuffle(downloadOrder);
+}
+
+
 // Let's go!
 console.log("STARTING FILE DOWNLOAD on " + new Date());
 startDownloads();
@@ -145,7 +160,7 @@ function downloadNextPod() {
 	}
 
 	// Retrieve the podcast object
-	var podObj = podcasts[downloadId++];
+	var podObj = podcasts[downloadOrder[downloadId++]];
 
 	// Dating
 	var date = new Date(podObj.timestamp);
@@ -263,4 +278,22 @@ function millisToMins(millis) {
 	var s =  "" + Math.round((millis % 60000) / 1000);
 	while (s.length < 2) s = "0" + s;
 	return m + ":" + s;
+}
+
+function shuffle(array) {
+  var m = array.length, t, i;
+
+  // While there remain elements to shuffle…
+  while (m) {
+
+    // Pick a remaining element…
+    i = Math.floor(Math.random() * m--);
+
+    // And swap it with the current element.
+    t = array[m];
+    array[m] = array[i];
+    array[i] = t;
+  }
+
+  return array;
 }
