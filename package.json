@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/garciadelcastillo/La-Rosa-de-los-Vientos#readme",
   "dependencies": {
-    "node-id3": "0.0.7",
+    "node-id3": "0.0.9",
     "sanitize-filename": "^1.6.1"
   }
 }
